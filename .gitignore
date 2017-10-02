@@ -52,3 +52,7 @@ buildNumber.properties
 config.properties
 secrets.properties
 users.db
+
+# Default bundle #
+bundle/
+
