@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import mu.KotlinLogging
+import net.bjoernpetersen.deskbot.rest.feature.AccessControl
 import net.bjoernpetersen.deskbot.rest.location.Version
 import net.bjoernpetersen.deskbot.rest.location.routeExit
 import net.bjoernpetersen.deskbot.rest.location.routePlayer
@@ -96,6 +97,10 @@ class KtorServer @Inject private constructor(
                     }
                 }
             }
+        }
+
+        install(AccessControl) {
+            allowOrigin("*")
         }
 
         install(Locations)
