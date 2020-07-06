@@ -130,6 +130,11 @@ dependencies {
         name = "ktor-client-okhttp",
         version = Lib.KTOR
     )
+    implementation(
+        group = "io.ktor",
+        name = "ktor-client-jackson",
+        version = Lib.KTOR
+    )
 
     implementation(
         group = "io.ktor",

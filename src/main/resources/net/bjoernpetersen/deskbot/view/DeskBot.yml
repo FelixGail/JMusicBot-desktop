@@ -55,11 +55,16 @@ player:
 
 task:
   parent:
-    title: Initializing plugins
+    title: Initializing
     description: This may take a while
+  pluginParent:
+    title: Initializing plugins
+    description: This may take a while shorter
   plugin:
     title: 'Loading %s: %s'
     waiting: 'Waiting for other plugin: %s %s'
+  cert:
+    title: Acquiring certificate
 
 pluginOrder:
   available: Available
