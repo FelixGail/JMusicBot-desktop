@@ -3,6 +3,7 @@ package net.bjoernpetersen.deskbot.lifecycle
 import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Module
+import io.ktor.util.KtorExperimentalAPI
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.locks.Lock
@@ -24,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
 import mu.KotlinLogging
+import net.bjoernpetersen.deskbot.cert.CertificateHandler
 import net.bjoernpetersen.deskbot.fximpl.FxInitStateWriter
 import net.bjoernpetersen.deskbot.impl.Broadcaster
 import net.bjoernpetersen.deskbot.impl.FileConfigStorage
@@ -206,7 +208,7 @@ class Lifecyclist : CoroutineScope {
     suspend fun run(result: (Throwable?) -> Unit) = staged(Stage.Injected) {
         // TODO rollback in case of failure
         coroutineScope {
-            Initializer(pluginFinder).start {
+            Initializer(pluginFinder, injector).start {
                 if (it != null) {
                     logger.error(it) { "Could not initialize!" }
                     result(it)
@@ -285,10 +287,14 @@ class Lifecyclist : CoroutineScope {
 }
 
 @Suppress("MagicNumber")
-private class Initializer(private val finder: PluginFinder) {
+private class Initializer(
+    private val finder: PluginFinder,
+    private val injector: Injector
+) {
 
     private val logger = KotlinLogging.logger {}
 
+    @KtorExperimentalAPI
     fun start(result: (Throwable?) -> Unit) {
         val view = TaskProgressView<Task<*>>()
         val tasks = view.tasks
@@ -297,6 +303,7 @@ private class Initializer(private val finder: PluginFinder) {
         val done = lock.newCondition()
         val finished: MutableSet<Plugin> = HashSet(64)
         val errors: MutableList<Throwable> = ArrayList()
+        var certDone = false
 
         val res = DeskBot.resources
         val window = view.show(modal = true, title = res["window.initialization"])
@@ -318,6 +325,9 @@ private class Initializer(private val finder: PluginFinder) {
                         done.await()
                         finishedCount = finished.size.toLong()
                     }
+                    while (certDone) {
+                        done.await()
+                    }
                 }
 
                 val exception = if (errors.isEmpty()) null
@@ -333,6 +343,30 @@ private class Initializer(private val finder: PluginFinder) {
         }
         thread(name = "InitializationParent", isDaemon = true) { parentTask.run() }
         tasks.add(parentTask)
+
+        val certTask = object : Task<Unit>() {
+            override fun call() {
+                updateTitle(res["task.cert.title"])
+                runBlocking {
+                    withContext(Dispatchers.IO) {
+                        val certHandler = injector.getInstance(CertificateHandler::class.java)
+                        try {
+                            certHandler.acquireCertificate(Paths.get("cert.jks"), "https://instance.kiu.party")
+                        } catch (e: Throwable) {
+                            logger.error(e) {"Unable to load or create certificate"}
+                            throw e
+                        } finally {
+                            lock.withLock {
+                                certDone = true
+                                done.signalAll()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        thread(name = "InitializationCertificate", isDaemon = true) { certTask.run() }
+        tasks.add(certTask)
 
         finder.allPlugins().forEach { plugin ->
             val task = object : Task<Unit>() {
