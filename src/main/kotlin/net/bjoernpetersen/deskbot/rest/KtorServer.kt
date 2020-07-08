@@ -20,7 +20,6 @@ import io.ktor.routing.routing
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.applicationEngineEnvironment
-import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.util.KtorExperimentalAPI
@@ -62,9 +61,9 @@ class KtorServer @Inject private constructor(
     private val env = applicationEngineEnvironment {
         sslConnector(
             certificateHandler.certificate.keystore,
-            certificateHandler.certificate.alias!!,
+            certificateHandler.certificate.getAlias()!!,
             { certificateHandler.certificate.passphrase.toCharArray() },
-            {"".toCharArray()}) {
+            { certificateHandler.certificate.passphrase.toCharArray() }) {
             host = "0.0.0.0"
             port = ServerConstraints.port
         }
