@@ -8,26 +8,26 @@ import java.util.Date
 data class Certificate(val passphrase: String) {
     val keystore: KeyStore = KeyStore.getInstance("JKS")
 
-    var alias: String? = null
-        get() {
-            if(field != null) {
-                return field
-            }
-            val aliases = keystore.aliases()
-            if (!aliases.hasMoreElements()) return null
+    fun getAlias(): String? {
+        val aliases = keystore.aliases()
+        if (!aliases.hasMoreElements()) return null
 
-            aliases.iterator().forEach {
-                if(keystore.getCertificate(it).type == "X.509") {
-                    field = alias
-                    return alias
-                }
+        aliases.iterator().forEach {
+            if (keystore.getCertificate(it).type == "X.509") {
+                return it
             }
-
-            return null
         }
 
+        return null
+    }
+
     fun isValid(): Boolean {
-        if(alias != null && (keystore.getCertificate(alias) as X509Certificate).notAfter.after(Date.from(Instant.now()))) {
+        if (getAlias() != null && (keystore.getCertificate(getAlias()) as X509Certificate).notAfter.after(
+                Date.from(
+                    Instant.now()
+                )
+            )
+        ) {
             return true
         }
         return false

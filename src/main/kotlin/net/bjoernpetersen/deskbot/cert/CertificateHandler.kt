@@ -20,11 +20,8 @@ import net.bjoernpetersen.musicbot.api.config.listSerializer
 import net.bjoernpetersen.musicbot.api.config.serialization
 import net.bjoernpetersen.musicbot.api.config.serialized
 import net.bjoernpetersen.musicbot.api.config.string
-import net.bjoernpetersen.musicbot.spi.plugin.management.InitStateWriter
 import java.net.Inet4Address
-import java.net.InetAddress
 import java.net.NetworkInterface
-import java.net.URL
 import java.nio.file.Path
 import java.util.Base64
 import javax.inject.Inject
@@ -34,7 +31,7 @@ private val certificateSerializer = serialization<Pair<String, String>> {
     serialize { "${it.first}|${it.second}" }
 }
 
-class CertificateHandler @Inject() private constructor(
+class CertificateHandler @Inject private constructor(
     configManager: ConfigManager
 ) {
 
@@ -67,7 +64,7 @@ class CertificateHandler @Inject() private constructor(
             }
         }
 
-    fun loadCertificate(path: Path, passphrase: String): Certificate {
+    private fun loadCertificate(path: Path, passphrase: String): Certificate {
         val cert = Certificate(passphrase)
         cert.keystore.load(path.toFile().inputStream(), passphrase.toCharArray())
         return cert
@@ -76,6 +73,7 @@ class CertificateHandler @Inject() private constructor(
     @KtorExperimentalAPI
     suspend fun retrieveCertificate(url: String, addresses: List<String>): Certificate {
         return withContext(Dispatchers.IO) {
+            logger.info { "Requesting new certificate from $url" }
             val client = HttpClient(OkHttp) {
                 install(JsonFeature) {
                     serializer = JacksonSerializer()
@@ -86,16 +84,14 @@ class CertificateHandler @Inject() private constructor(
                 contentType(ContentType.Application.Json)
                 body = InitialRequest(addresses)
             }
-            domains.set(response.domains)
+            domains.set(response.domains.fold(mutableMapOf(), {acc, ipDomain -> acc[ipDomain.ip] = ipDomain.domain; acc }))
             val certificate = Certificate(response.token)
-            assert(response.keyFormat == "jks")
 
             var done = false
             while (!done) {
                 val certResponse = client.get<CertificateResponse> {
-                    url(url)
+                    url("$url/${response.token}")
                     contentType(ContentType.Application.Json)
-                    body = CertificateRequest(certificate.passphrase)
                 }
                 if (certResponse.hasCertificate) {
                     assert(certResponse.jks != null)
@@ -104,7 +100,7 @@ class CertificateHandler @Inject() private constructor(
                         decodedStream,
                         certificate.passphrase.toCharArray()
                     )
-                    done = true;
+                    done = true
                 }
                 delay(10000L)
             }
@@ -113,28 +109,26 @@ class CertificateHandler @Inject() private constructor(
     }
 
     @KtorExperimentalAPI
-    suspend fun acquireCertificate(path: Path, url: String, writer: InitStateWriter) {
-        writer.state("Try loading certificate from disk")
+    suspend fun acquireCertificate(path: Path, url: String) {
         val file = path.toFile()
         if (file.exists() && !key.get().isNullOrEmpty() &&
             (domains.get() == null || findAdresses().containsAll(domains.get()!!.keys))) {
             try {
                 val cert = loadCertificate(path, key.get()!!)
                 if (cert.isValid()) {
+                    logger.info { "Using existing certificate" }
                     certificate = cert
                     return
                 }
             } catch (exc: Exception) {
-                logger.error(exc) {"Unable to load cert from disk"}
-                //Loading failed - do nothing
+                logger.info(exc) {"Local certificate invalid"}
             }
         }
-        writer.state("Requesting new certificate ")
-        val cert = retrieveCertificate(url, findAdresses())
-        assert(cert.isValid())
         if (file.exists()) {
+            logger.debug { "Deleting existing certificate in $path" }
             file.delete()
         }
+        val cert = retrieveCertificate(url, findAdresses())
         withContext(Dispatchers.IO) {
             val stream = file.outputStream()
             cert.keystore.store(stream, cert.passphrase.toCharArray())
@@ -152,19 +146,16 @@ class CertificateHandler @Inject() private constructor(
                         it.isUp
             }.flatMap {
                 it.inetAddresses.toList().filter { a ->
-                    !a.isLoopbackAddress &&
-                            !a.isMulticastAddress &&
+                    !a.isMulticastAddress &&
                             a is Inet4Address
                 }.asSequence()
-            }.map { i -> i.hostAddress }.toList()
+            }.map { i -> i.hostAddress}.toList()
     }
 
 }
 
 data class InitialRequest(val ips: List<String>, val keyFormat: String = "jks")
-data class InitialResponse(val domains: Map<String, String>, val token: String, val keyFormat: String)
-data class CertificateRequest(val token: String)
-data class CertificateResponse(val hasCertificate: Boolean, val pem: Pem?, val p12: P12?, val jks: Jks?)
-data class Pem(val crt: String, val key: String)
-data class P12(val p12: String)
+data class InitialResponse(val domains: List<IpDomain>, val token: String, val keyFormat: String)
+data class CertificateResponse(val hasCertificate: Boolean, val jks: Jks?)
 data class Jks(val jks: String)
+data class IpDomain(val ip: String, val domain: String)
