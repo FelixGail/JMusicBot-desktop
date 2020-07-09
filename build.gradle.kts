@@ -138,7 +138,7 @@ dependencies {
 
     implementation(
         group = "io.ktor",
-        name = "ktor-server-cio",
+        name = "ktor-server-netty",
         version = Lib.KTOR
     )
     implementation(
