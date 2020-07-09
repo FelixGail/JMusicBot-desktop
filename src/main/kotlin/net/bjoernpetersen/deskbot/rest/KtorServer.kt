@@ -17,11 +17,11 @@ import io.ktor.locations.get
 import io.ktor.response.respond
 import io.ktor.routing.get
 import io.ktor.routing.routing
-import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.applicationEngineEnvironment
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
+import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import mu.KotlinLogging
 import net.bjoernpetersen.deskbot.cert.CertificateHandler
@@ -59,11 +59,12 @@ class KtorServer @Inject private constructor(
 ) {
     private val logger = KotlinLogging.logger {}
     private val env = applicationEngineEnvironment {
+        val certificate = certificateHandler.certificate
         sslConnector(
-            certificateHandler.certificate.keystore,
-            certificateHandler.certificate.getAlias()!!,
-            { certificateHandler.certificate.passphrase.toCharArray() },
-            { certificateHandler.certificate.passphrase.toCharArray() }) {
+            certificate.keystore,
+            certificate.getAlias()!!,
+            { certificate.passphrase.toCharArray() },
+            { certificate.passphrase.toCharArray() }) {
             host = "0.0.0.0"
             port = ServerConstraints.port
         }
@@ -141,7 +142,7 @@ class KtorServer @Inject private constructor(
             }
         }
     }
-    private val server: ApplicationEngine = embeddedServer(CIO, env)
+    private val server: ApplicationEngine = embeddedServer(Netty, env)
 
     fun start() {
         server.start()
