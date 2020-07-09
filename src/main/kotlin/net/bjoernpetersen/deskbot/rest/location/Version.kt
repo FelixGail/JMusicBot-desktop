@@ -15,14 +15,13 @@ private const val PROJECT_NAME = "DeskBot"
 @Location("/version")
 class Version {
     companion object {
-        val versionInfo: VersionInfo by lazy { loadInfo() }
+        val implVersion by lazy { loadImplementationVersion() }
+        val apiVersion by lazy { loadApiVersion() }
 
-        private fun loadInfo(): VersionInfo {
-            val implVersion = loadImplementationVersion()
-            val apiVersion = loadApiVersion()
+        fun getInfo(botName: String): VersionInfo {
             return VersionInfo(
                 apiVersion,
-                "Nameless bot",
+                botName,
                 ImplementationInfo(
                     PROJECT_PAGE,
                     PROJECT_NAME,

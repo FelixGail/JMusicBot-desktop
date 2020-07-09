@@ -25,6 +25,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import mu.KotlinLogging
 import net.bjoernpetersen.deskbot.cert.CertificateHandler
+import net.bjoernpetersen.deskbot.impl.MainConfigEntries
 import net.bjoernpetersen.deskbot.rest.location.Version
 import net.bjoernpetersen.deskbot.rest.location.routeExit
 import net.bjoernpetersen.deskbot.rest.location.routePlayer
@@ -55,9 +56,11 @@ class KtorServer @Inject private constructor(
     private val tokenHandler: TokenHandler,
     private val imageCache: ImageCache,
     private val injector: Injector,
-    private val certificateHandler: CertificateHandler
+    private val certificateHandler: CertificateHandler,
+    private val mainConfigEntries: MainConfigEntries
 ) {
     private val logger = KotlinLogging.logger {}
+    val botName = mainConfigEntries.instanceName.get()!!
     private val env = applicationEngineEnvironment {
         val certificate = certificateHandler.certificate
         sslConnector(
@@ -116,8 +119,9 @@ class KtorServer @Inject private constructor(
             install(Locations)
 
             routing {
+
                 get<Version> {
-                    call.respond(Version.versionInfo)
+                    call.respond(Version.getInfo(botName))
                 }
 
                 routePlayer(injector)
