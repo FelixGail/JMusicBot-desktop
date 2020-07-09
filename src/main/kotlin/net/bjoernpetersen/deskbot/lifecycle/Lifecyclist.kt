@@ -4,16 +4,8 @@ import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Module
 import io.ktor.util.KtorExperimentalAPI
-import java.io.File
-import java.nio.file.Paths
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
 import javafx.application.Platform
 import javafx.concurrent.Task
-import javax.inject.Inject
-import kotlin.concurrent.thread
-import kotlin.concurrent.withLock
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -26,6 +18,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
 import mu.KotlinLogging
 import net.bjoernpetersen.deskbot.cert.CertificateHandler
+import net.bjoernpetersen.deskbot.cert.CertificateHandlerModule
 import net.bjoernpetersen.deskbot.fximpl.FxInitStateWriter
 import net.bjoernpetersen.deskbot.impl.Broadcaster
 import net.bjoernpetersen.deskbot.impl.FileConfigStorage
@@ -78,6 +71,14 @@ import net.bjoernpetersen.musicbot.spi.plugin.Suggester
 import net.bjoernpetersen.musicbot.spi.plugin.management.DependencyManager
 import net.bjoernpetersen.musicbot.spi.util.BrowserOpener
 import org.controlsfx.control.TaskProgressView
+import java.io.File
+import java.nio.file.Paths
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
+import javax.inject.Inject
+import kotlin.concurrent.thread
+import kotlin.concurrent.withLock
+import kotlin.coroutines.CoroutineContext
 
 @Suppress("TooManyFunctions")
 class Lifecyclist : CoroutineScope {
@@ -174,7 +175,8 @@ class Lifecyclist : CoroutineScope {
         DefaultImageCacheModule(),
         ImageLoaderImpl,
         DefaultResourceCacheModule(),
-        FileStorageModule(FileStorageImpl::class)
+        FileStorageModule(FileStorageImpl::class),
+        CertificateHandlerModule()
     )
 
     fun inject(browserOpener: BrowserOpener) = stagedBlock(Stage.Created) {
@@ -205,6 +207,7 @@ class Lifecyclist : CoroutineScope {
         stage = Stage.Injected
     }
 
+    @KtorExperimentalAPI
     suspend fun run(result: (Throwable?) -> Unit) = staged(Stage.Injected) {
         // TODO rollback in case of failure
         coroutineScope {
@@ -325,7 +328,7 @@ private class Initializer(
                         done.await()
                         finishedCount = finished.size.toLong()
                     }
-                    while (certDone) {
+                    while (!certDone) {
                         done.await()
                     }
                 }
@@ -348,18 +351,16 @@ private class Initializer(
             override fun call() {
                 updateTitle(res["task.cert.title"])
                 runBlocking {
-                    withContext(Dispatchers.IO) {
-                        val certHandler = injector.getInstance(CertificateHandler::class.java)
-                        try {
-                            certHandler.acquireCertificate(Paths.get("cert.jks"), "https://instance.kiu.party")
-                        } catch (e: Throwable) {
-                            logger.error(e) {"Unable to load or create certificate"}
-                            throw e
-                        } finally {
-                            lock.withLock {
-                                certDone = true
-                                done.signalAll()
-                            }
+                    val certHandler = injector.getInstance(CertificateHandler::class.java)
+                    try {
+                        certHandler.acquireCertificate(Paths.get("cert.jks"), "https://instance.kiu.party")
+                    } catch (e: Throwable) {
+                        logger.error(e) { "Unable to load or create certificate\n${e}" }
+                        throw e
+                    } finally {
+                        lock.withLock {
+                            certDone = true
+                            done.signalAll()
                         }
                     }
                 }

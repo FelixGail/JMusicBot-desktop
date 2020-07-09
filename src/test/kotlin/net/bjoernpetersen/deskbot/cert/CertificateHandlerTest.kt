@@ -25,7 +25,6 @@ import net.bjoernpetersen.deskbot.lifecycle.Lifecyclist
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.net.InetAddress
@@ -34,7 +33,6 @@ import java.time.OffsetDateTime
 import java.util.Base64
 
 private const val PORT = 54321
-private val charPool: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
 private const val PASSPHRASE = "supersecretkey"
 private const val DOMAIN = "test.instance.kiu"
 private const val ALIAS = "certificate"
@@ -74,7 +72,7 @@ class CertificateHandlerTest {
                         val domains =
                             value.ips.map { IpDomain(it, "${it.hashCode()}.$DOMAIN") }
                         requestTime = OffsetDateTime.now()
-                        val response = InitialResponse(domains, PASSPHRASE, "jks")
+                        val response = InitialResponse( "*.$DOMAIN", domains, PASSPHRASE, "jks")
                         logger.info { "Response: domains: ${response.domains}" }
                         call.respond(response)
                     }
@@ -167,11 +165,14 @@ class CertificateHandlerTest {
     @Test
     fun testMissingKey() {
         runBlocking {
+            if (!handlerCertPath.toFile().exists()) {
+                generateCertificate(handlerCertPath.toFile(), keyPassword = PASSPHRASE, jksPassword = PASSPHRASE, keyAlias = ALIAS)
+            }
             val cycle = Lifecyclist()
             cycle.create(File("plugins"))
             cycle.inject(SwingBrowserOpener())
             val certificateHandler = cycle.getInjector().getInstance(CertificateHandler::class.java)
-            certificateHandler.acquireCertificate(certPath, "http://127.0.0.1:$PORT")
+            certificateHandler.acquireCertificate(handlerCertPath, "http://127.0.0.1:$PORT")
 
             Assertions.assertEquals(1, postRequests.size)
             Assertions.assertEquals(postRequests[0].second.ips.size, certificateHandler.domains.get()!!.size)
@@ -185,6 +186,9 @@ class CertificateHandlerTest {
     @Test
     fun testChangedIp() {
         runBlocking {
+            if (!handlerCertPath.toFile().exists()) {
+                generateCertificate(handlerCertPath.toFile(), keyPassword = PASSPHRASE, jksPassword = PASSPHRASE, keyAlias = ALIAS)
+            }
             val cycle = Lifecyclist()
             cycle.create(File("plugins"))
             cycle.inject(SwingBrowserOpener())
@@ -193,7 +197,7 @@ class CertificateHandlerTest {
             certificateHandler.domains.set(mapOf(InetAddress.getLoopbackAddress().hostAddress to DOMAIN))
             certificateHandler.key.set(PASSPHRASE)
 
-            certificateHandler.acquireCertificate(certPath, "http://127.0.0.1:$PORT")
+            certificateHandler.acquireCertificate(handlerCertPath, "http://127.0.0.1:$PORT")
 
             Assertions.assertEquals(1, postRequests.size)
             Assertions.assertEquals(postRequests[0].second.ips.size, certificateHandler.domains.get()!!.size)

@@ -1,5 +1,7 @@
 package net.bjoernpetersen.deskbot.cert
 
+import com.google.inject.AbstractModule
+import com.google.inject.Scopes
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.features.json.JacksonSerializer
@@ -84,27 +86,33 @@ class CertificateHandler @Inject private constructor(
                 contentType(ContentType.Application.Json)
                 body = InitialRequest(addresses)
             }
-            domains.set(response.domains.fold(mutableMapOf(), {acc, ipDomain -> acc[ipDomain.ip] = ipDomain.domain; acc }))
+            domains.set(
+                response.domains.fold(
+                    mutableMapOf(),
+                    { acc, ipDomain -> acc[ipDomain.ip] = ipDomain.domain; acc })
+            )
             val certificate = Certificate(response.token)
 
             var done = false
             while (!done) {
                 val certResponse = client.get<CertificateResponse> {
                     url("$url/${response.token}")
-                    contentType(ContentType.Application.Json)
                 }
                 if (certResponse.hasCertificate) {
+                    logger.debug { "Receiving new certificate" }
                     assert(certResponse.jks != null)
                     val decodedStream = Base64.getDecoder().decode(certResponse.jks!!.jks).inputStream()
+                    logger.debug { "Loading new certificate" }
                     certificate.keystore.load(
                         decodedStream,
                         certificate.passphrase.toCharArray()
                     )
+                    logger.debug { "Completed loading new certificate" }
                     done = true
                 }
                 delay(10000L)
             }
-            return@withContext certificate
+            certificate
         }
     }
 
@@ -112,7 +120,8 @@ class CertificateHandler @Inject private constructor(
     suspend fun acquireCertificate(path: Path, url: String) {
         val file = path.toFile()
         if (file.exists() && !key.get().isNullOrEmpty() &&
-            (domains.get() == null || findAdresses().containsAll(domains.get()!!.keys))) {
+            (domains.get() == null || domains.get()!!.keys.containsAll(findAdresses()))
+        ) {
             try {
                 val cert = loadCertificate(path, key.get()!!)
                 if (cert.isValid()) {
@@ -121,21 +130,25 @@ class CertificateHandler @Inject private constructor(
                     return
                 }
             } catch (exc: Exception) {
-                logger.info(exc) {"Local certificate invalid"}
+                logger.info(exc) { "Local certificate invalid" }
             }
         }
         if (file.exists()) {
-            logger.debug { "Deleting existing certificate in $path" }
+            logger.debug { "Deleting existing invalid certificate in $path" }
             file.delete()
+        } else {
+            logger.debug { "No local certificate found" }
         }
         val cert = retrieveCertificate(url, findAdresses())
+        logger.debug { "Storing new certificate" }
         withContext(Dispatchers.IO) {
             val stream = file.outputStream()
             cert.keystore.store(stream, cert.passphrase.toCharArray())
             stream.close()
         }
-        certificate = cert
+        logger.debug { "Stored certificate successfully" }
         key.set(cert.passphrase)
+        certificate = cert
     }
 
     private fun findAdresses(): List<String> {
@@ -149,13 +162,26 @@ class CertificateHandler @Inject private constructor(
                     !a.isMulticastAddress &&
                             a is Inet4Address
                 }.asSequence()
-            }.map { i -> i.hostAddress}.toList()
+            }.map { i -> i.hostAddress }.toList()
     }
 
 }
 
 data class InitialRequest(val ips: List<String>, val keyFormat: String = "jks")
-data class InitialResponse(val domains: List<IpDomain>, val token: String, val keyFormat: String)
+data class InitialResponse(
+    val wildcardDomain: String,
+    val domains: List<IpDomain>,
+    val token: String,
+    val keyFormat: String
+)
+
 data class CertificateResponse(val hasCertificate: Boolean, val jks: Jks?)
 data class Jks(val jks: String)
 data class IpDomain(val ip: String, val domain: String)
+
+class CertificateHandlerModule() : AbstractModule() {
+
+    override fun configure() {
+        bind(CertificateHandler::class.java).`in`(Scopes.SINGLETON)
+    }
+}
