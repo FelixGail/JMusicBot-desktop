@@ -27,6 +27,7 @@ import net.bjoernpetersen.deskbot.impl.ImageLoaderImpl
 import net.bjoernpetersen.deskbot.impl.MainConfigEntries
 import net.bjoernpetersen.deskbot.impl.SongPlayedNotifierModule
 import net.bjoernpetersen.deskbot.rest.KtorServer
+import net.bjoernpetersen.deskbot.rest.location.VersionModule
 import net.bjoernpetersen.deskbot.view.DeskBot
 import net.bjoernpetersen.deskbot.view.get
 import net.bjoernpetersen.deskbot.view.show
@@ -176,7 +177,8 @@ class Lifecyclist : CoroutineScope {
         ImageLoaderImpl,
         DefaultResourceCacheModule(),
         FileStorageModule(FileStorageImpl::class),
-        CertificateHandlerModule()
+        CertificateHandlerModule(),
+        VersionModule()
     )
 
     fun inject(browserOpener: BrowserOpener) = stagedBlock(Stage.Created) {

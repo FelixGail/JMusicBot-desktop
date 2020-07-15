@@ -13,7 +13,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
 import io.ktor.locations.KtorExperimentalLocationsAPI
 import io.ktor.locations.Locations
-import io.ktor.locations.get
 import io.ktor.response.respond
 import io.ktor.routing.get
 import io.ktor.routing.routing
@@ -25,8 +24,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import mu.KotlinLogging
 import net.bjoernpetersen.deskbot.cert.CertificateHandler
-import net.bjoernpetersen.deskbot.impl.MainConfigEntries
-import net.bjoernpetersen.deskbot.rest.location.Version
+import net.bjoernpetersen.deskbot.rest.location.VersionConstraints
 import net.bjoernpetersen.deskbot.rest.location.routeExit
 import net.bjoernpetersen.deskbot.rest.location.routePlayer
 import net.bjoernpetersen.deskbot.rest.location.routeProvider
@@ -44,6 +42,7 @@ import net.bjoernpetersen.musicbot.api.image.ImageServerConstraints
 import net.bjoernpetersen.musicbot.spi.auth.TokenHandler
 import net.bjoernpetersen.musicbot.spi.image.ImageCache
 import net.bjoernpetersen.musicbot.spi.plugin.NoSuchSongException
+import net.bjoernpetersen.musicbot.spi.version.Version
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -57,10 +56,9 @@ class KtorServer @Inject private constructor(
     private val imageCache: ImageCache,
     private val injector: Injector,
     private val certificateHandler: CertificateHandler,
-    private val mainConfigEntries: MainConfigEntries
+    private val version: Version
 ) {
     private val logger = KotlinLogging.logger {}
-    val botName = mainConfigEntries.instanceName.get()!!
     private val env = applicationEngineEnvironment {
         val certificate = certificateHandler.certificate
         sslConnector(
@@ -120,8 +118,8 @@ class KtorServer @Inject private constructor(
 
             routing {
 
-                get<Version> {
-                    call.respond(Version.getInfo(botName))
+                get(VersionConstraints.PATH) {
+                    call.respond(version.versionInfo)
                 }
 
                 routePlayer(injector)

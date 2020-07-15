@@ -1,19 +1,30 @@
 package net.bjoernpetersen.deskbot.rest.location
 
 import com.github.zafarkhaja.semver.ParseException
+import com.google.inject.AbstractModule
+import com.google.inject.Inject
+import com.google.inject.Scopes
 import io.ktor.locations.KtorExperimentalLocationsAPI
-import io.ktor.locations.Location
+import net.bjoernpetersen.deskbot.impl.MainConfigEntries
+import net.bjoernpetersen.musicbot.spi.version.ImplementationInfo
+import net.bjoernpetersen.musicbot.spi.version.Version
+import net.bjoernpetersen.musicbot.spi.version.VersionInfo
 import java.io.IOException
 import java.util.Properties
-import net.bjoernpetersen.deskbot.rest.model.ImplementationInfo
-import net.bjoernpetersen.deskbot.rest.model.VersionInfo
+
 
 private const val PROJECT_PAGE = "https://github.com/BjoernPetersen/MusicBot-desktop"
 private const val PROJECT_NAME = "DeskBot"
 
-@KtorExperimentalLocationsAPI
-@Location("/version")
-class Version {
+object VersionConstraints {
+    const val PATH = "/version"
+}
+
+class VersionImpl @Inject private constructor(
+    private val mainConfigEntries: MainConfigEntries
+) : Version {
+    override val versionInfo by lazy { getInfo(mainConfigEntries.instanceName.get()!!) }
+
     companion object {
         val implVersion by lazy { loadImplementationVersion() }
         val apiVersion by lazy { loadApiVersion() }
@@ -43,5 +54,12 @@ class Version {
         }
 
         private fun loadApiVersion(): String = "0.15.3"
+    }
+}
+
+class VersionModule() : AbstractModule() {
+    @KtorExperimentalLocationsAPI
+    override fun configure() {
+        bind(Version::class.java).to(VersionImpl::class.java).`in`(Scopes.SINGLETON)
     }
 }

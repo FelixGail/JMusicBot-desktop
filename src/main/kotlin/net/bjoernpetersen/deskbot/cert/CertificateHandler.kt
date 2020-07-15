@@ -22,6 +22,7 @@ import net.bjoernpetersen.musicbot.api.config.listSerializer
 import net.bjoernpetersen.musicbot.api.config.serialization
 import net.bjoernpetersen.musicbot.api.config.serialized
 import net.bjoernpetersen.musicbot.api.config.string
+import net.bjoernpetersen.musicbot.spi.domain.DomainHandler
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.nio.file.Path
@@ -35,7 +36,7 @@ private val certificateSerializer = serialization<Pair<String, String>> {
 
 class CertificateHandler @Inject private constructor(
     configManager: ConfigManager
-) {
+): DomainHandler {
 
     private val logger = KotlinLogging.logger {}
     lateinit var certificate: Certificate
@@ -52,6 +53,7 @@ class CertificateHandler @Inject private constructor(
         .serialized<Map<String, String>> {
             description = ""
             check { null }
+            default(emptyMap())
             serialization {
                 deserialize {
                     certificateSerializer.listSerializer()
@@ -65,6 +67,8 @@ class CertificateHandler @Inject private constructor(
                 }
             }
         }
+
+    override val ipDomains: Map<String, String> = domains.get()!!
 
     private fun loadCertificate(path: Path, passphrase: String): Certificate {
         val cert = Certificate(passphrase)
@@ -183,5 +187,6 @@ class CertificateHandlerModule() : AbstractModule() {
 
     override fun configure() {
         bind(CertificateHandler::class.java).`in`(Scopes.SINGLETON)
+        bind(DomainHandler::class.java).to(CertificateHandler::class.java).`in`(Scopes.SINGLETON)
     }
 }
