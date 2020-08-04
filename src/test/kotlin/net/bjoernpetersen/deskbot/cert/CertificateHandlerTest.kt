@@ -11,9 +11,9 @@ import io.ktor.response.respond
 import io.ktor.routing.get
 import io.ktor.routing.post
 import io.ktor.routing.routing
-import io.ktor.server.cio.CIO
-import io.ktor.server.cio.CIOApplicationEngine
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.netty.NettyApplicationEngine
 import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -41,7 +41,7 @@ private val handlerCertPath = Paths.get("build/handlerCert.jks")
 
 class CertificateHandlerTest {
     companion object {
-        lateinit var server: CIOApplicationEngine
+        lateinit var server: NettyApplicationEngine
         var requestTime: OffsetDateTime? = null
         val logger = KotlinLogging.logger { }
         val postRequests = mutableListOf<Pair<ApplicationCall, InitialRequest>>()
@@ -56,7 +56,7 @@ class CertificateHandlerTest {
                 generateCertificate(certPath.toFile(), keyPassword = PASSPHRASE, jksPassword = PASSPHRASE, keyAlias = ALIAS)
             }
 
-            server = embeddedServer(CIO, port = PORT) {
+            server = embeddedServer(Netty, port = PORT) {
                 install(io.ktor.features.ContentNegotiation) {
                     jackson {
                     }
