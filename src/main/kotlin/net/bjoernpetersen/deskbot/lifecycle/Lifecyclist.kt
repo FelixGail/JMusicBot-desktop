@@ -350,11 +350,15 @@ private class Initializer(
         tasks.add(parentTask)
 
         val certTask = object : Task<Unit>() {
+            val writer = FxInitStateWriter(::updateMessage)
+
             override fun call() {
                 updateTitle(res["task.cert.title"])
+                updateMessage(res["task.cert.description"])
                 runBlocking {
                     val certHandler = injector.getInstance(CertificateHandler::class.java)
                     try {
+                        //TODO: Make url configurable?
                         certHandler.acquireCertificate(Paths.get("cert.jks"), "https://instance.kiu.party")
                     } catch (e: Throwable) {
                         logger.error(e) { "Unable to load or create certificate\n${e}" }

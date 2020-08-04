@@ -62,6 +62,7 @@ task:
     waiting: 'Waiting for other plugin: %s %s'
   cert:
     title: Acquiring certificate
+    description: Validating a new certificate may take a while
 
 pluginOrder:
   available: Available
