@@ -70,7 +70,7 @@ class CertificateHandlerTest {
                         logger.info { "Parameter: ips: ${value.ips}, format: ${value.keyFormat}" }
                         assert(value.keyFormat == "jks") { "keyFormat not jks" }
                         val domains =
-                            value.ips.map { IpDomain(it, "${it.hashCode()}.$DOMAIN") }
+                            value.ips.map { IpDomain(listOf(it), "${it.hashCode()}.$DOMAIN") }
                         requestTime = OffsetDateTime.now()
                         val response = InitialResponse( "*.$DOMAIN", domains, PASSPHRASE, "jks")
                         logger.info { "Response: domains: ${response.domains}" }
