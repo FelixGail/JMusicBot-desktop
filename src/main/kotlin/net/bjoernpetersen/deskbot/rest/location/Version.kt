@@ -8,7 +8,6 @@ import io.ktor.locations.KtorExperimentalLocationsAPI
 import net.bjoernpetersen.deskbot.impl.MainConfigEntries
 import net.bjoernpetersen.musicbot.spi.version.ImplementationInfo
 import net.bjoernpetersen.musicbot.spi.version.Version
-import net.bjoernpetersen.musicbot.spi.version.VersionInfo
 import java.io.IOException
 import java.util.Properties
 
@@ -23,24 +22,18 @@ object VersionConstraints {
 class VersionImpl @Inject private constructor(
     private val mainConfigEntries: MainConfigEntries
 ) : Version {
-    override val versionInfo by lazy { getInfo(mainConfigEntries.instanceName.get()!!) }
+
+    override val apiVersion by lazy { loadApiVersion() }
+    override val botName by lazy { mainConfigEntries.instanceName.get()!! }
+    override val implementation by lazy {
+        ImplementationInfo(
+            PROJECT_PAGE,
+            PROJECT_NAME,
+            loadImplementationVersion()
+        )
+    }
 
     companion object {
-        val implVersion by lazy { loadImplementationVersion() }
-        val apiVersion by lazy { loadApiVersion() }
-
-        fun getInfo(botName: String): VersionInfo {
-            return VersionInfo(
-                apiVersion,
-                botName,
-                ImplementationInfo(
-                    PROJECT_PAGE,
-                    PROJECT_NAME,
-                    implVersion
-                )
-            )
-        }
-
         private fun loadImplementationVersion() = try {
             val properties = Properties()
             Version::class.java
@@ -58,6 +51,8 @@ class VersionImpl @Inject private constructor(
 }
 
 class VersionModule() : AbstractModule() {
+
+
     @KtorExperimentalLocationsAPI
     override fun configure() {
         bind(Version::class.java).to(VersionImpl::class.java).`in`(Scopes.SINGLETON)

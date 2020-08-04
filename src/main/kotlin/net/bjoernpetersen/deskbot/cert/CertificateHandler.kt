@@ -16,6 +16,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
+import net.bjoernpetersen.deskbot.view.DeskBot
+import net.bjoernpetersen.deskbot.view.get
 import net.bjoernpetersen.musicbot.api.config.ConfigManager
 import net.bjoernpetersen.musicbot.api.config.GenericConfigScope
 import net.bjoernpetersen.musicbot.api.config.listSerializer
@@ -23,6 +25,7 @@ import net.bjoernpetersen.musicbot.api.config.serialization
 import net.bjoernpetersen.musicbot.api.config.serialized
 import net.bjoernpetersen.musicbot.api.config.string
 import net.bjoernpetersen.musicbot.spi.domain.DomainHandler
+import net.bjoernpetersen.musicbot.spi.plugin.management.InitStateWriter
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.nio.file.Path
@@ -36,7 +39,7 @@ private val certificateSerializer = serialization<Pair<String, String>> {
 
 class CertificateHandler @Inject private constructor(
     configManager: ConfigManager
-): DomainHandler {
+) : DomainHandler {
 
     private val logger = KotlinLogging.logger {}
     lateinit var certificate: Certificate
@@ -68,8 +71,6 @@ class CertificateHandler @Inject private constructor(
             }
         }
 
-    override val ipDomains: Map<String, String> = domains.get()!!
-
     private fun loadCertificate(path: Path, passphrase: String): Certificate {
         val cert = Certificate(passphrase)
         cert.keystore.load(path.toFile().inputStream(), passphrase.toCharArray())
@@ -93,7 +94,7 @@ class CertificateHandler @Inject private constructor(
             domains.set(
                 response.domains.fold(
                     mutableMapOf(),
-                    { acc, ipDomain -> acc[ipDomain.ip] = ipDomain.domain; acc })
+                    { acc, ipDomain -> ipDomain.ips.forEach { ip -> acc[ip] = ipDomain.domain }; acc })
             )
             val certificate = Certificate(response.token)
 
@@ -122,6 +123,7 @@ class CertificateHandler @Inject private constructor(
 
     @KtorExperimentalAPI
     suspend fun acquireCertificate(path: Path, url: String) {
+        val res = DeskBot.resources
         val file = path.toFile()
         if (file.exists() && !key.get().isNullOrEmpty() &&
             (domains.get() == null || domains.get()!!.keys.containsAll(findAdresses()))
@@ -169,6 +171,10 @@ class CertificateHandler @Inject private constructor(
             }.map { i -> i.hostAddress }.toList()
     }
 
+    override fun getDomainByIp(): Map<String, String> {
+        return domains.get()!!
+    }
+
 }
 
 data class InitialRequest(val ips: List<String>, val keyFormat: String = "jks")
@@ -181,7 +187,7 @@ data class InitialResponse(
 
 data class CertificateResponse(val hasCertificate: Boolean, val jks: Jks?)
 data class Jks(val jks: String)
-data class IpDomain(val ip: String, val domain: String)
+data class IpDomain(val ips: List<String>, val domain: String)
 
 class CertificateHandlerModule() : AbstractModule() {
 

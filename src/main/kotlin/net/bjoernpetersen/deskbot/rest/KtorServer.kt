@@ -6,9 +6,12 @@ import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.Authentication
 import io.ktor.auth.basic
+import io.ktor.features.CORS
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.DataConversion
 import io.ktor.features.StatusPages
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
 import io.ktor.locations.KtorExperimentalLocationsAPI
@@ -18,6 +21,7 @@ import io.ktor.routing.get
 import io.ktor.routing.routing
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.applicationEngineEnvironment
+import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.server.netty.Netty
@@ -66,6 +70,11 @@ class KtorServer @Inject private constructor(
             certificate.getAlias()!!,
             { certificate.passphrase.toCharArray() },
             { certificate.passphrase.toCharArray() }) {
+            host = "0.0.0.0"
+            port = ServerConstraints.port + 1
+        }
+
+        connector {
             host = "0.0.0.0"
             port = ServerConstraints.port
         }
@@ -127,7 +136,7 @@ class KtorServer @Inject private constructor(
             routing {
 
                 get(VersionConstraints.PATH) {
-                    call.respond(version.versionInfo)
+                    call.respond(version)
                 }
 
                 routePlayer(injector)
