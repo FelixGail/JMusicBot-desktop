@@ -71,6 +71,14 @@ class KtorServer @Inject private constructor(
         }
 
         this.module {
+            install(CORS) {
+                anyHost()
+                allowCredentials = true
+                allowNonSimpleContentTypes = true
+                method(HttpMethod.Put)
+                method(HttpMethod.Delete)
+                header(HttpHeaders.Authorization)
+            }
             install(StatusPages) {
                 expectAuth()
                 exception<AuthExpectationException> {
