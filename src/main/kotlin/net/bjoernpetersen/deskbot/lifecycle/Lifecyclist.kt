@@ -17,7 +17,6 @@ import mu.KotlinLogging
 import net.bjoernpetersen.deskbot.impl.Broadcaster
 import net.bjoernpetersen.deskbot.impl.FileConfigStorage
 import net.bjoernpetersen.deskbot.impl.FileStorageImpl
-import net.bjoernpetersen.deskbot.impl.HeadlessValueImpl
 import net.bjoernpetersen.deskbot.impl.ImageLoaderImpl
 import net.bjoernpetersen.deskbot.impl.MainConfigEntries
 import net.bjoernpetersen.deskbot.impl.SongPlayedNotifierModule
@@ -172,7 +171,7 @@ class Lifecyclist : CoroutineScope {
         dependencyManager
     }
 
-    private fun modules(browserOpener: BrowserOpener, suggester: Suggester?, headless: Boolean): List<Module> = listOf(
+    private fun modules(browserOpener: BrowserOpener, suggester: Suggester?): List<Module> = listOf(
         ConfigModule(configManager),
         DefaultPlayerModule(suggester),
         DefaultQueueModule(),
@@ -187,13 +186,12 @@ class Lifecyclist : CoroutineScope {
         DefaultImageCacheModule(),
         ImageLoaderImpl,
         DefaultResourceCacheModule(),
-        FileStorageModule(FileStorageImpl::class),
-        HeadlessValueImpl(headless)
+        FileStorageModule(FileStorageImpl::class)
     )
 
-    fun inject(browserOpener: BrowserOpener, headless: Boolean = false) = stagedBlock(Stage.Created) {
+    fun inject(browserOpener: BrowserOpener) = stagedBlock(Stage.Created) {
         pluginFinder = dependencyManager.finish(emptyList(), emptyList())
-        mainConfig = MainConfigEntries(configManager, pluginFinder, classLoader, headless)
+        mainConfig = MainConfigEntries(configManager, pluginFinder, classLoader)
         // TODO calling finish twice is terrible.
         pluginFinder = dependencyManager.finish(
             mainConfig.providerOrder.get() ?: emptyList(),
@@ -203,7 +201,7 @@ class Lifecyclist : CoroutineScope {
         val suggester = mainConfig.defaultSuggester.get()
         logger.info { "Default suggester: ${suggester?.name}" }
 
-        injector = Guice.createInjector(modules(browserOpener, suggester, headless))
+        injector = Guice.createInjector(modules(browserOpener, suggester))
 
         pluginFinder.allPlugins().forEach {
             injector.injectMembers(it)

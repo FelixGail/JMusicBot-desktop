@@ -41,9 +41,7 @@ class MainConfigEntries @Inject constructor(
     configManager: ConfigManager,
     pluginFinder: PluginFinder,
     @Named("PluginClassLoader")
-    classLoader: ClassLoader,
-    @Named("Headless")
-    headless: Boolean
+    classLoader: ClassLoader
 ) {
     // TODO put in constructor
     private val pluginIdSerializer = PluginId.Serializer(classLoader)
