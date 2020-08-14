@@ -40,7 +40,7 @@ tasks.named<CreateStartScripts>("startScripts") {
 val headlessStartScripts by tasks.register("headlessStartScripts", CreateStartScripts::class) {
     applicationName = "musicbot-headless"
     outputDir = file("build/scripts") // By putting these scripts here, they will be picked up automatically by the installDist task
-    mainClassName = "net.bjoernpetersen.deskbot.view.DeskbotHeadless"
+    mainClassName = "net.bjoernpetersen.deskbot.view.DeskBotHeadless"
     classpath = project.tasks.getAt(JavaPlugin.JAR_TASK_NAME).outputs.files.plus(project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME)) // I took this from ApplicationPlugin.java:129
 }
 tasks.named("installDist") {
