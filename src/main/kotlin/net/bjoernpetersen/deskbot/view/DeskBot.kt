@@ -1,17 +1,16 @@
 package net.bjoernpetersen.deskbot.view
 
-import java.io.File
-import java.util.ResourceBundle
 import javafx.application.Application
 import javafx.scene.Scene
 import javafx.stage.Stage
-import kotlin.system.exitProcess
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import net.bjoernpetersen.deskbot.fximpl.SwingBrowserOpener
+import net.bjoernpetersen.deskbot.initialization.FxInitializationHandler
 import net.bjoernpetersen.deskbot.lifecycle.Lifecyclist
-import net.bjoernpetersen.deskbot.localization.YamlResourceBundle
 import org.controlsfx.dialog.ExceptionDialog
+import java.io.File
+import kotlin.system.exitProcess
 
 class DeskBot : Application() {
     private val logger = KotlinLogging.logger {}
@@ -35,7 +34,7 @@ class DeskBot : Application() {
             cycle.create(File("plugins"))
             cycle.inject(SwingBrowserOpener())
             runBlocking {
-                cycle.run {
+                cycle.run(FxInitializationHandler()) {
                     if (it != null) {
                         logger.error(it) { "Failed to start" }
                         ExceptionDialog(it).apply {
@@ -69,8 +68,6 @@ class DeskBot : Application() {
         var runningInstance: Lifecyclist? = null
         lateinit var application: DeskBot
             private set
-        val resources: ResourceBundle
-            get() = ResourceBundle.getBundle(DeskBot::class.java.name, YamlResourceBundle.Control)
 
         @Suppress("SpreadOperator")
         @JvmStatic

@@ -30,7 +30,21 @@ repositories {
 }
 
 application {
+    applicationName = "musicbot-desktop"
     mainClassName = "net.bjoernpetersen.deskbot.view.DeskBot"
+}
+
+tasks.named<CreateStartScripts>("startScripts") {
+    applicationName = "musicbot-desktop"
+}
+val headlessStartScripts by tasks.register("headlessStartScripts", CreateStartScripts::class) {
+    applicationName = "musicbot-headless"
+    outputDir = file("build/scripts") // By putting these scripts here, they will be picked up automatically by the installDist task
+    mainClassName = "net.bjoernpetersen.deskbot.view.DeskbotHeadless"
+    classpath = project.tasks.getAt(JavaPlugin.JAR_TASK_NAME).outputs.files.plus(project.configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME)) // I took this from ApplicationPlugin.java:129
+}
+tasks.named("installDist") {
+    dependsOn(headlessStartScripts)
 }
 
 idea {
@@ -117,6 +131,12 @@ dependencies {
     ) {
         isChanging = Lib.MUSICBOT.contains("SNAPSHOT")
     }
+
+    implementation(
+        group = "org.jetbrains.kotlinx",
+        name = "kotlinx-coroutines-core",
+        version = Lib.KOTLIN_COROUTINES
+    )
 
     implementation(
         group = "org.jetbrains.kotlinx",

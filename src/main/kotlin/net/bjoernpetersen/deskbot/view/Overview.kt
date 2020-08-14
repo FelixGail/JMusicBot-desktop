@@ -9,6 +9,7 @@ import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import net.bjoernpetersen.deskbot.fximpl.SwingBrowserOpener
+import net.bjoernpetersen.deskbot.initialization.FxInitializationHandler
 import net.bjoernpetersen.deskbot.lifecycle.Lifecyclist
 import net.bjoernpetersen.musicbot.spi.plugin.GenericPlugin
 import net.bjoernpetersen.musicbot.spi.plugin.Provider
@@ -35,7 +36,7 @@ class Overview : Controller {
         initActivation()
     }
 
-    override fun getWindowTitle(): String? = DeskBot.resources["window.overview"]
+    override fun getWindowTitle(): String? = DeskBotInfo.resources["window.overview"]
 
     private fun initActivation() {
         thread(name = "OverviewLoader", isDaemon = true) {
@@ -66,7 +67,7 @@ class Overview : Controller {
             cycle.create(File("plugins"))
             cycle.inject(SwingBrowserOpener())
             runBlocking {
-                cycle.run {
+                cycle.run(FxInitializationHandler()) {
                     if (it != null) {
                         logger.error(it) { "Failed to start" }
                         ExceptionDialog(it).apply {

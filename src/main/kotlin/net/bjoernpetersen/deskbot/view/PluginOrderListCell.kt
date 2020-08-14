@@ -35,8 +35,8 @@ class PluginOrderListCell : ListCell<PluginOrderItem>(), Controller {
         availability.textProperty().bind(createStringBinding(itemProperty()) {
             when (item?.isAvailable) {
                 null -> null
-                true -> DeskBot.resources["pluginOrder.available"]
-                false -> DeskBot.resources["pluginOrder.unavailable"]
+                true -> DeskBotInfo.resources["pluginOrder.available"]
+                false -> DeskBotInfo.resources["pluginOrder.unavailable"]
             }
         })
 

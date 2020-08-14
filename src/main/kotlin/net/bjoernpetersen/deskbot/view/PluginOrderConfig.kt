@@ -43,7 +43,7 @@ class PluginOrderConfig : Controller {
                     true
                 }
                 contextMenu = ContextMenu(
-                    MenuItem(DeskBot.resources["action.remove"]).apply {
+                    MenuItem(DeskBotInfo.resources["action.remove"]).apply {
                         setOnAction { event ->
                             item?.let { pluginList.items.remove(it) }
                             event.consume()
@@ -61,14 +61,14 @@ class PluginOrderConfig : Controller {
         loaded.addListener { _, _, _ -> refreshList() }
     }
 
-    override fun getWindowTitle(): String? = DeskBot.resources["window.pluginOrder"]
+    override fun getWindowTitle(): String? = DeskBotInfo.resources["window.pluginOrder"]
 
     override fun onStageAttach(stage: Stage) {
         stage.setOnCloseRequest { event ->
             if (pluginList.items.map { it.pluginId } != configEntry?.get()) {
                 val result = Alert(Alert.AlertType.CONFIRMATION).apply {
-                    title = DeskBot.resources["confirmation.quitWithoutSaveTitle"]
-                    headerText = DeskBot.resources["confirmation.quitWithoutSaveHeader"]
+                    title = DeskBotInfo.resources["confirmation.quitWithoutSaveTitle"]
+                    headerText = DeskBotInfo.resources["confirmation.quitWithoutSaveHeader"]
                 }.showAndWait().orElse(ButtonType.CANCEL)
                 if (result !== ButtonType.OK) {
                     event.consume()

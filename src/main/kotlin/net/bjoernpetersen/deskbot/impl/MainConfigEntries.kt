@@ -10,7 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.bjoernpetersen.deskbot.view.DefaultPermissionConfig
-import net.bjoernpetersen.deskbot.view.DeskBot
+import net.bjoernpetersen.deskbot.view.DeskBotInfo
 import net.bjoernpetersen.deskbot.view.PluginOrderConfig
 import net.bjoernpetersen.deskbot.view.get
 import net.bjoernpetersen.deskbot.view.load
@@ -41,7 +41,9 @@ class MainConfigEntries @Inject constructor(
     configManager: ConfigManager,
     pluginFinder: PluginFinder,
     @Named("PluginClassLoader")
-    classLoader: ClassLoader
+    classLoader: ClassLoader,
+    @Named("Headless")
+    headless: Boolean
 ) {
     // TODO put in constructor
     private val pluginIdSerializer = PluginId.Serializer(classLoader)
@@ -61,7 +63,7 @@ class MainConfigEntries @Inject constructor(
         serializer = Permission.setSerializer()
         check(NonnullConfigChecker)
         actionButton {
-            label = DeskBot.resources["action.edit"]
+            label = DeskBotInfo.resources["action.edit"]
             describe { it.sorted().joinToString() }
             val mutex = Mutex()
             action {
@@ -110,7 +112,7 @@ class MainConfigEntries @Inject constructor(
         check { null }
         default(emptyList())
         actionButton {
-            label = DeskBot.resources["action.edit"]
+            label = DeskBotInfo.resources["action.edit"]
             describe { providerIds ->
                 providerIds.joinToString { it.displayName }
             }
@@ -141,7 +143,7 @@ class MainConfigEntries @Inject constructor(
         check { null }
         default(emptyList())
         actionButton {
-            label = DeskBot.resources["action.edit"]
+            label = DeskBotInfo.resources["action.edit"]
             describe { suggesterIds ->
                 suggesterIds.joinToString { it.displayName }
             }

@@ -55,7 +55,7 @@ class Dependencies : Controller {
     }
 
     override fun getWindowTitle(): String? {
-        return DeskBot.resources.getString("window.dependencies")
+        return DeskBotInfo.resources.getString("window.dependencies")
     }
 
     fun setPlugin(dependencyManager: DependencyManager, plugin: Plugin) {

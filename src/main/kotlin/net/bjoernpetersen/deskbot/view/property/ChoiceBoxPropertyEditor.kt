@@ -14,7 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
-import net.bjoernpetersen.deskbot.view.DeskBot
+import net.bjoernpetersen.deskbot.view.DeskBotInfo
 import net.bjoernpetersen.deskbot.view.stringConverter
 import net.bjoernpetersen.musicbot.api.config.ChoiceBox
 import org.controlsfx.property.editor.AbstractPropertyEditor
@@ -87,7 +87,7 @@ class ChoiceBoxPropertyEditor<T : Any>(
 }
 
 private fun <T> node(): Node = ToolBar(
-    Button(DeskBot.resources.getString("action.refresh")).apply {
+    Button(DeskBotInfo.resources.getString("action.refresh")).apply {
         id = "actionButton"
     },
     FxChoiceBox<T>().apply {

@@ -20,7 +20,7 @@ class UserManagement : Controller {
     @FXML
     private lateinit var permissionManagementController: PermissionManagement
 
-    override fun getWindowTitle(): String? = DeskBot.resources["window.userManagement"]
+    override fun getWindowTitle(): String? = DeskBotInfo.resources["window.userManagement"]
 
     @FXML
     override fun initialize() {

@@ -1,13 +1,14 @@
 package net.bjoernpetersen.deskbot.fximpl
 
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import net.bjoernpetersen.musicbot.api.plugin.category
 import net.bjoernpetersen.musicbot.spi.plugin.Plugin
 import net.bjoernpetersen.musicbot.spi.plugin.management.InitStateWriter
+import kotlin.coroutines.CoroutineContext
 
 class FxInitStateWriter(private val updateMessage: (String) -> Unit) : InitStateWriter,
     CoroutineScope {
@@ -18,13 +19,13 @@ class FxInitStateWriter(private val updateMessage: (String) -> Unit) : InitState
         get() = Dispatchers.Main
 
     override fun state(state: String) {
-        launch {
+        GlobalScope.launch {
             updateMessage(state)
         }
     }
 
     override fun warning(warning: String) {
-        launch {
+        GlobalScope.launch {
             updateMessage("WARNING: $warning")
             logger.warn { warning }
         }

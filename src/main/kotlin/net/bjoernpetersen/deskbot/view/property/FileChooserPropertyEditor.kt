@@ -13,7 +13,7 @@ import javafx.scene.layout.Background
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.stage.DirectoryChooser
-import net.bjoernpetersen.deskbot.view.DeskBot
+import net.bjoernpetersen.deskbot.view.DeskBotInfo
 import net.bjoernpetersen.deskbot.view.property
 import net.bjoernpetersen.musicbot.api.config.FileChooser
 import org.controlsfx.property.editor.PropertyEditor
@@ -81,7 +81,7 @@ private val Node.textField: TextField
     get() = (this as ToolBar).items[1] as TextField
 
 private val FileChooser.label: String
-    get() = DeskBot.resources.getString("choose.${if (isDirectory) "dir" else "file"}")
+    get() = DeskBotInfo.resources.getString("choose.${if (isDirectory) "dir" else "file"}")
 
 private fun node(fileChooser: FileChooser): Node = ToolBar(
     Button(fileChooser.label).apply {

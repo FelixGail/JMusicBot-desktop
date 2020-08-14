@@ -3,16 +3,6 @@ package net.bjoernpetersen.deskbot.lifecycle
 import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Module
-import java.io.File
-import java.nio.file.Paths
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
-import javafx.application.Platform
-import javafx.concurrent.Task
-import javax.inject.Inject
-import kotlin.concurrent.thread
-import kotlin.concurrent.withLock
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -24,19 +14,19 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
 import mu.KotlinLogging
-import net.bjoernpetersen.deskbot.fximpl.FxInitStateWriter
 import net.bjoernpetersen.deskbot.impl.Broadcaster
 import net.bjoernpetersen.deskbot.impl.FileConfigStorage
 import net.bjoernpetersen.deskbot.impl.FileStorageImpl
+import net.bjoernpetersen.deskbot.impl.HeadlessValueImpl
 import net.bjoernpetersen.deskbot.impl.ImageLoaderImpl
 import net.bjoernpetersen.deskbot.impl.MainConfigEntries
 import net.bjoernpetersen.deskbot.impl.SongPlayedNotifierModule
+import net.bjoernpetersen.deskbot.initialization.InitializationHandler
+import net.bjoernpetersen.deskbot.initialization.InitializationTask
 import net.bjoernpetersen.deskbot.rest.KtorServer
-import net.bjoernpetersen.deskbot.view.DeskBot
-import net.bjoernpetersen.deskbot.view.get
-import net.bjoernpetersen.deskbot.view.show
+import net.bjoernpetersen.deskbot.view.DeskBotInfo
 import net.bjoernpetersen.musicbot.api.auth.BotUser
-import net.bjoernpetersen.musicbot.api.auth.DefaultPermissions
+import net.bjoernpetersen.musicbot.api.auth.DefaultPermissions.value
 import net.bjoernpetersen.musicbot.api.config.ConfigManager
 import net.bjoernpetersen.musicbot.api.config.GenericConfigScope
 import net.bjoernpetersen.musicbot.api.config.MainConfigScope
@@ -61,7 +51,6 @@ import net.bjoernpetersen.musicbot.api.module.PluginModule
 import net.bjoernpetersen.musicbot.api.player.PlayerState
 import net.bjoernpetersen.musicbot.api.player.QueueEntry
 import net.bjoernpetersen.musicbot.api.plugin.PluginLoaderImpl
-import net.bjoernpetersen.musicbot.api.plugin.category
 import net.bjoernpetersen.musicbot.api.plugin.management.DefaultDependencyManager
 import net.bjoernpetersen.musicbot.api.plugin.management.PluginFinder
 import net.bjoernpetersen.musicbot.api.plugin.management.findDependencies
@@ -69,13 +58,18 @@ import net.bjoernpetersen.musicbot.spi.player.Player
 import net.bjoernpetersen.musicbot.spi.player.QueueChangeListener
 import net.bjoernpetersen.musicbot.spi.player.SongQueue
 import net.bjoernpetersen.musicbot.spi.plugin.NoSuchSongException
-import net.bjoernpetersen.musicbot.spi.plugin.Plugin
 import net.bjoernpetersen.musicbot.spi.plugin.PluginLookup
 import net.bjoernpetersen.musicbot.spi.plugin.Provider
 import net.bjoernpetersen.musicbot.spi.plugin.Suggester
 import net.bjoernpetersen.musicbot.spi.plugin.management.DependencyManager
+import net.bjoernpetersen.musicbot.spi.plugin.management.InitStateWriter
 import net.bjoernpetersen.musicbot.spi.util.BrowserOpener
-import org.controlsfx.control.TaskProgressView
+import java.io.File
+import java.nio.file.Paths
+import java.util.concurrent.locks.ReentrantLock
+import javax.inject.Inject
+import kotlin.concurrent.withLock
+import kotlin.coroutines.CoroutineContext
 
 @Suppress("TooManyFunctions")
 class Lifecyclist : CoroutineScope {
@@ -85,8 +79,29 @@ class Lifecyclist : CoroutineScope {
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + job
 
+    private val stageLock = ReentrantLock()
+    private val stageCondition = stageLock.newCondition()
+
     var stage: Stage = Stage.New
-        private set
+        private set(value) {
+            stageLock.withLock {
+                field = value
+                stageCondition.signalAll()
+            }
+        }
+        get() {
+            stageLock.withLock {
+                return field
+            }
+        }
+
+    fun awaitStageChange() {
+        runBlocking {
+            stageLock.withLock {
+                stageCondition.await()
+            }
+        }
+    }
 
     // Created stage vars
     private lateinit var configManager: ConfigManager
@@ -157,7 +172,7 @@ class Lifecyclist : CoroutineScope {
         dependencyManager
     }
 
-    private fun modules(browserOpener: BrowserOpener, suggester: Suggester?): List<Module> = listOf(
+    private fun modules(browserOpener: BrowserOpener, suggester: Suggester?, headless: Boolean): List<Module> = listOf(
         ConfigModule(configManager),
         DefaultPlayerModule(suggester),
         DefaultQueueModule(),
@@ -172,12 +187,13 @@ class Lifecyclist : CoroutineScope {
         DefaultImageCacheModule(),
         ImageLoaderImpl,
         DefaultResourceCacheModule(),
-        FileStorageModule(FileStorageImpl::class)
+        FileStorageModule(FileStorageImpl::class),
+        HeadlessValueImpl(headless)
     )
 
-    fun inject(browserOpener: BrowserOpener) = stagedBlock(Stage.Created) {
+    fun inject(browserOpener: BrowserOpener, headless: Boolean = false) = stagedBlock(Stage.Created) {
         pluginFinder = dependencyManager.finish(emptyList(), emptyList())
-        mainConfig = MainConfigEntries(configManager, pluginFinder, classLoader)
+        mainConfig = MainConfigEntries(configManager, pluginFinder, classLoader, headless)
         // TODO calling finish twice is terrible.
         pluginFinder = dependencyManager.finish(
             mainConfig.providerOrder.get() ?: emptyList(),
@@ -187,7 +203,7 @@ class Lifecyclist : CoroutineScope {
         val suggester = mainConfig.defaultSuggester.get()
         logger.info { "Default suggester: ${suggester?.name}" }
 
-        injector = Guice.createInjector(modules(browserOpener, suggester))
+        injector = Guice.createInjector(modules(browserOpener, suggester, headless))
 
         pluginFinder.allPlugins().forEach {
             injector.injectMembers(it)
@@ -203,16 +219,16 @@ class Lifecyclist : CoroutineScope {
         stage = Stage.Injected
     }
 
-    suspend fun run(result: (Throwable?) -> Unit) = staged(Stage.Injected) {
+    suspend fun run(initHandler: InitializationHandler, result: (Throwable?) -> Unit) = staged(Stage.Injected) {
         // TODO rollback in case of failure
         coroutineScope {
-            Initializer(pluginFinder).start {
+            Initializer(pluginFinder, initHandler).start {
                 if (it != null) {
                     logger.error(it) { "Could not initialize!" }
                     result(it)
                     return@start
                 }
-                DefaultPermissions.defaultPermissions = mainConfig.defaultPermissions.get()!!
+                value = mainConfig.defaultPermissions.get()!!
 
                 val player = injector.getInstance(Player::class.java)
                 player.start()
@@ -242,7 +258,7 @@ class Lifecyclist : CoroutineScope {
                         })
                 }
 
-                DeskBot.runningInstance = this@Lifecyclist
+                DeskBotInfo.runningInstance = this@Lifecyclist
                 stage = Stage.Running
                 result(null)
             }
@@ -285,102 +301,31 @@ class Lifecyclist : CoroutineScope {
 }
 
 @Suppress("MagicNumber")
-private class Initializer(private val finder: PluginFinder) {
+private class Initializer(
+    private val finder: PluginFinder,
+    private val initHandler: InitializationHandler
+) {
 
-    private val logger = KotlinLogging.logger {}
-
-    fun start(result: (Throwable?) -> Unit) {
-        val view = TaskProgressView<Task<*>>()
-        val tasks = view.tasks
-
-        val lock: Lock = ReentrantLock()
-        val done = lock.newCondition()
-        val finished: MutableSet<Plugin> = HashSet(64)
-        val errors: MutableList<Throwable> = ArrayList()
-
-        val res = DeskBot.resources
-        val window = view.show(modal = true, title = res["window.initialization"])
-
-        val parentTask = object : Task<Unit>() {
-            override fun call() {
-                updateTitle(res["task.parent.title"])
-                updateMessage(res["task.parent.description"])
-
-                // TODO timeout/cancel
-                val todo = finder.run {
-                    genericPlugins.size + playbackFactories.size + providers.size + suggesters.size
-                }.toLong()
-                updateProgress(0, todo)
-                lock.withLock {
-                    var finishedCount = finished.size.toLong()
-                    while (finishedCount != todo) {
-                        updateProgress(finishedCount, todo)
-                        done.await()
-                        finishedCount = finished.size.toLong()
-                    }
-                }
-
-                val exception = if (errors.isEmpty()) null
-                else errors.fold(Exception("One or more initializations failed")) { e, t ->
-                    e.apply { addSuppressed(t) }
-                }
-
-                Platform.runLater {
-                    result(exception)
-                    window.close()
-                }
-            }
-        }
-        thread(name = "InitializationParent", isDaemon = true) { parentTask.run() }
-        tasks.add(parentTask)
+    suspend fun start(result: (Throwable?) -> Unit) {
 
         finder.allPlugins().forEach { plugin ->
-            val task = object : Task<Unit>() {
-                val writer = FxInitStateWriter(::updateMessage)
-
-                override fun call() {
-                    updateTitle(
-                        res["task.plugin.title"].format(plugin.category.simpleName, plugin.name)
-                    )
-                    plugin.findDependencies()
-                        .asSequence()
-                        .map { finder[it]!! }
-                        .forEach {
-                            if (it !in finished) {
-                                val type = it.category.simpleName
-                                lock.withLock {
-                                    while (it !in finished) {
-                                        writer.state(
-                                            res["task.plugin.waiting"].format(type, it.name)
-                                        )
-                                        done.await()
-                                    }
-                                }
-                            }
-                        }
-                    writer.state("Starting...")
-
+            val task = object : InitializationTask(plugin.hashCode(), plugin.name, plugin.findDependencies().map { finder[it]!!.hashCode() }) {
+                override fun call(writer: InitStateWriter) {
                     runBlocking {
-                        @Suppress("TooGenericExceptionCaught")
-                        try {
-                            plugin.initialize(writer)
-                        } catch (e: Throwable) {
-                            logger.error(e) { "Could not initialize $plugin" }
-                            throw e
-                        }
-                    }
-
-                    lock.withLock {
-                        finished.add(plugin)
-                        done.signalAll()
+                        plugin.initialize(writer)
                     }
                 }
             }
-            tasks.add(task)
-            thread(isDaemon = true, name = "Init${plugin.category.simpleName}${plugin.name}") {
-                task.run()
-            }
+            initHandler.addTask(task)
         }
+
+        @Suppress("TooGenericExceptionCaught")
+        try {
+            initHandler.initialize()
+        } catch (e: Throwable) {
+            result(e)
+        }
+        result(null)
     }
 }
 

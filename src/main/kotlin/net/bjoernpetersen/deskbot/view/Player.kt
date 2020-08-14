@@ -42,7 +42,7 @@ private typealias LibPlayer = net.bjoernpetersen.musicbot.spi.player.Player
 
 class Player(private val lifecycle: Lifecyclist) : Controller, CoroutineScope {
     private val logger = KotlinLogging.logger {}
-    private val res = DeskBot.resources
+    private val res = DeskBotInfo.resources
 
     private lateinit var job: Job
     override val coroutineContext: CoroutineContext
@@ -150,7 +150,7 @@ class Player(private val lifecycle: Lifecyclist) : Controller, CoroutineScope {
                     }
                     true
                 }
-                val removeItem = MenuItem(DeskBot.resources["action.remove"]).apply {
+                val removeItem = MenuItem(DeskBotInfo.resources["action.remove"]).apply {
                     setOnAction { event ->
                         item?.song?.let { queue.remove(it) }
                         event.consume()

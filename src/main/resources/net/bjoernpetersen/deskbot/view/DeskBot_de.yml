@@ -44,9 +44,5 @@ player:
   search: Suche nach Songs...
 
 task:
-  parent:
-    title: Initialisiere Plugins
-    description: Dies könnte eine Weile dauern...
-  plugin:
-    title: 'Lade %s: %s'
-    waiting: 'Warte auf anderes Plugin: %s %s'
+  initialization:
+    title: Initialisiere %s

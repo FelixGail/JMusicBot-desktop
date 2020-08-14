@@ -54,12 +54,8 @@ player:
   search: Search for songs...
 
 task:
-  parent:
-    title: Initializing plugins
-    description: This may take a while
-  plugin:
-    title: 'Loading %s: %s'
-    waiting: 'Waiting for other plugin: %s %s'
+  initialization:
+    title: Initializing %s
 
 pluginOrder:
   available: Available
