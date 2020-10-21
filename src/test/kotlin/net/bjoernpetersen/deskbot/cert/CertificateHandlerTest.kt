@@ -15,6 +15,11 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
 import io.ktor.util.KtorExperimentalAPI
+import java.io.File
+import java.net.InetAddress
+import java.nio.file.Paths
+import java.time.OffsetDateTime
+import java.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -26,11 +31,6 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import java.io.File
-import java.net.InetAddress
-import java.nio.file.Paths
-import java.time.OffsetDateTime
-import java.util.Base64
 
 private const val PORT = 54321
 private const val PASSPHRASE = "supersecretkey"
@@ -72,7 +72,7 @@ class CertificateHandlerTest {
                         val domains =
                             value.ips.map { IpDomain(listOf(it), "${it.hashCode()}.$DOMAIN") }
                         requestTime = OffsetDateTime.now()
-                        val response = InitialResponse( "*.$DOMAIN", domains, PASSPHRASE, "jks")
+                        val response = InitialResponse("*.$DOMAIN", domains, PASSPHRASE, "jks")
                         logger.info { "Response: domains: ${response.domains}" }
                         call.respond(response)
                     }
@@ -91,7 +91,6 @@ class CertificateHandlerTest {
                                         )
                                     )
                                 }
-
                             }
                         } else {
                             call.respond(HttpStatusCode.BadRequest, "Invalid token")
@@ -107,7 +106,7 @@ class CertificateHandlerTest {
         @AfterAll
         @JvmStatic
         fun removeCertificate() {
-            if(certPath.toFile().exists()) {
+            if (certPath.toFile().exists()) {
                 certPath.toFile().delete()
             }
         }
@@ -116,7 +115,7 @@ class CertificateHandlerTest {
     private fun cleanup(handler: CertificateHandler) {
         handler.domains.set(null)
         handler.key.set(null)
-        if(handlerCertPath.toFile().exists()) {
+        if (handlerCertPath.toFile().exists()) {
             handlerCertPath.toFile().delete()
         }
         postRequests.clear()

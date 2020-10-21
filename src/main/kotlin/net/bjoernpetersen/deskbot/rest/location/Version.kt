@@ -5,12 +5,11 @@ import com.google.inject.AbstractModule
 import com.google.inject.Inject
 import com.google.inject.Scopes
 import io.ktor.locations.KtorExperimentalLocationsAPI
+import java.io.IOException
+import java.util.Properties
 import net.bjoernpetersen.deskbot.impl.MainConfigEntries
 import net.bjoernpetersen.musicbot.spi.version.ImplementationInfo
 import net.bjoernpetersen.musicbot.spi.version.Version
-import java.io.IOException
-import java.util.Properties
-
 
 private const val PROJECT_PAGE = "https://github.com/BjoernPetersen/MusicBot-desktop"
 private const val PROJECT_NAME = "DeskBot"
@@ -51,7 +50,6 @@ class VersionImpl @Inject private constructor(
 }
 
 class VersionModule() : AbstractModule() {
-
 
     @KtorExperimentalLocationsAPI
     override fun configure() {

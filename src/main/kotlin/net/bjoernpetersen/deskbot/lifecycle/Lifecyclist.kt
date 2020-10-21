@@ -4,8 +4,16 @@ import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Module
 import io.ktor.util.KtorExperimentalAPI
+import java.io.File
+import java.nio.file.Paths
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 import javafx.application.Platform
 import javafx.concurrent.Task
+import javax.inject.Inject
+import kotlin.concurrent.thread
+import kotlin.concurrent.withLock
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -72,14 +80,6 @@ import net.bjoernpetersen.musicbot.spi.plugin.Suggester
 import net.bjoernpetersen.musicbot.spi.plugin.management.DependencyManager
 import net.bjoernpetersen.musicbot.spi.util.BrowserOpener
 import org.controlsfx.control.TaskProgressView
-import java.io.File
-import java.nio.file.Paths
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
-import javax.inject.Inject
-import kotlin.concurrent.thread
-import kotlin.concurrent.withLock
-import kotlin.coroutines.CoroutineContext
 
 @Suppress("TooManyFunctions")
 class Lifecyclist : CoroutineScope {
@@ -358,10 +358,10 @@ private class Initializer(
                 runBlocking {
                     val certHandler = injector.getInstance(CertificateHandler::class.java)
                     try {
-                        //TODO: Make url configurable?
+                        // TODO: Make url configurable?
                         certHandler.acquireCertificate(Paths.get("cert.jks"), "https://instance.kiu.party")
                     } catch (e: Throwable) {
-                        logger.error(e) { "Unable to load or create certificate\n${e}" }
+                        logger.error(e) { "Unable to load or create certificate\n$e" }
                         throw e
                     } finally {
                         lock.withLock {

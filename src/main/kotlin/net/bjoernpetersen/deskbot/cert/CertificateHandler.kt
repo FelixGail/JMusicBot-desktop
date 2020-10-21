@@ -12,6 +12,11 @@ import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
+import java.net.Inet4Address
+import java.net.NetworkInterface
+import java.nio.file.Path
+import java.util.Base64
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -25,12 +30,6 @@ import net.bjoernpetersen.musicbot.api.config.serialization
 import net.bjoernpetersen.musicbot.api.config.serialized
 import net.bjoernpetersen.musicbot.api.config.string
 import net.bjoernpetersen.musicbot.spi.domain.DomainHandler
-import net.bjoernpetersen.musicbot.spi.plugin.management.InitStateWriter
-import java.net.Inet4Address
-import java.net.NetworkInterface
-import java.nio.file.Path
-import java.util.Base64
-import javax.inject.Inject
 
 private val certificateSerializer = serialization<Pair<String, String>> {
     deserialize { it.split('|').let { (a, b) -> a to b } }
@@ -174,7 +173,6 @@ class CertificateHandler @Inject private constructor(
     override fun getDomainByIp(): Map<String, String> {
         return domains.get()!!
     }
-
 }
 
 data class InitialRequest(val ips: List<String>, val keyFormat: String = "jks")
