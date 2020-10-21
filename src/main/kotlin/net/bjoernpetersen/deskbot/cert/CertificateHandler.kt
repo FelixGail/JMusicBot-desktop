@@ -126,7 +126,7 @@ class CertificateHandler @Inject private constructor(
         val res = DeskBot.resources
         val file = path.toFile()
         if (file.exists() && !key.get().isNullOrEmpty() &&
-            (domains.get() == null || domains.get()!!.keys.containsAll(findAdresses()))
+            (domains.get()!! == emptyMap<String, String>() || domains.get()!!.keys.containsAll(findAdresses()))
         ) {
             try {
                 val cert = loadCertificate(path, key.get()!!)
