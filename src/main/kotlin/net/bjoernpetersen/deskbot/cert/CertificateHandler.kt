@@ -123,7 +123,6 @@ class CertificateHandler @Inject private constructor(
 
     @KtorExperimentalAPI
     suspend fun acquireCertificate(path: Path, url: String) {
-        val res = DeskBot.resources
         val file = path.toFile()
         if (file.exists() && !key.get().isNullOrEmpty() &&
             (domains.get()!! == emptyMap<String, String>() || domains.get()!!.keys.containsAll(findAdresses()))
