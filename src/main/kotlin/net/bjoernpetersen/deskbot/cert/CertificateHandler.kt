@@ -32,7 +32,7 @@ import java.util.Base64
 import javax.inject.Inject
 
 /**
- * Serialize
+ * Serialize the IP to domain mapping
  */
 private val certificateSerializer = serialization<Pair<String, String>> {
     deserialize { it.split('|').let { (a, b) -> a to b } }
