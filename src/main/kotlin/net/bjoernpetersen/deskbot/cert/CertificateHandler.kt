@@ -31,6 +31,9 @@ import java.nio.file.Path
 import java.util.Base64
 import javax.inject.Inject
 
+/**
+ * Serialize
+ */
 private val certificateSerializer = serialization<Pair<String, String>> {
     deserialize { it.split('|').let { (a, b) -> a to b } }
     serialize { "${it.first}|${it.second}" }
@@ -70,12 +73,25 @@ class CertificateHandler @Inject private constructor(
             }
         }
 
+    /**
+     * Load a certificate from disk
+     *
+     * @param path Path to certificate store
+     * @param passphrase Passphrase for the certificate store
+     */
     private fun loadCertificate(path: Path, passphrase: String): Certificate {
         val cert = Certificate(passphrase)
         cert.keystore.load(path.toFile().inputStream(), passphrase.toCharArray())
         return cert
     }
 
+    /**
+     * Request a new certificate from LSaaS
+     *
+     * @param url LSaas url
+     * @param addresses List of IP addresses to request a certificate for
+     * @return The newly retrieved certificate
+     */
     @KtorExperimentalAPI
     suspend fun retrieveCertificate(url: String, addresses: List<String>): Certificate {
         return withContext(Dispatchers.IO) {
@@ -121,6 +137,14 @@ class CertificateHandler @Inject private constructor(
         }
     }
 
+    /**
+     * Check the provided path for a valid certificate and request a new one, if the file does not exist
+     * or if the store does not contain a valid X.509 certificate.
+     * If a new certificate is acquired it will be saved under the provided location.
+     *
+     * @param path Path to the certificate store
+     * @param url Url to access LSaaS by
+     */
     @KtorExperimentalAPI
     suspend fun acquireCertificate(path: Path, url: String) {
         val file = path.toFile()
@@ -156,6 +180,9 @@ class CertificateHandler @Inject private constructor(
         certificate = cert
     }
 
+    /**
+     * Returns a list of all IP addresses that this mashine could be accessible under.
+     */
     private fun findAdresses(): List<String> {
         return NetworkInterface.getNetworkInterfaces().asSequence()
             .filter {

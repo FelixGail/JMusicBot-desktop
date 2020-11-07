@@ -8,6 +8,9 @@ import java.util.Date
 data class Certificate(val passphrase: String) {
     val keystore: KeyStore = KeyStore.getInstance("JKS")
 
+    /**
+     * Return the alias for the X.509 certificate
+     */
     fun getAlias(): String? {
         val aliases = keystore.aliases()
         if (!aliases.hasMoreElements()) return null
@@ -21,6 +24,9 @@ data class Certificate(val passphrase: String) {
         return null
     }
 
+    /**
+     * Return true if the certificate is still valid, false if it has expired.
+     */
     fun isValid(): Boolean {
         if (getAlias() != null && (keystore.getCertificate(getAlias()) as X509Certificate).notAfter.after(
                 Date.from(
