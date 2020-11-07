@@ -15,11 +15,6 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
 import io.ktor.util.KtorExperimentalAPI
-import java.io.File
-import java.net.InetAddress
-import java.nio.file.Paths
-import java.time.OffsetDateTime
-import java.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -31,6 +26,11 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import java.io.File
+import java.net.InetAddress
+import java.nio.file.Paths
+import java.time.OffsetDateTime
+import java.util.Base64
 
 private const val PORT = 54321
 private const val PASSPHRASE = "supersecretkey"

@@ -12,11 +12,6 @@ import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
-import java.net.Inet4Address
-import java.net.NetworkInterface
-import java.nio.file.Path
-import java.util.Base64
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -30,6 +25,11 @@ import net.bjoernpetersen.musicbot.api.config.serialization
 import net.bjoernpetersen.musicbot.api.config.serialized
 import net.bjoernpetersen.musicbot.api.config.string
 import net.bjoernpetersen.musicbot.spi.domain.DomainHandler
+import java.net.Inet4Address
+import java.net.NetworkInterface
+import java.nio.file.Path
+import java.util.Base64
+import javax.inject.Inject
 
 private val certificateSerializer = serialization<Pair<String, String>> {
     deserialize { it.split('|').let { (a, b) -> a to b } }
@@ -93,7 +93,8 @@ class CertificateHandler @Inject private constructor(
             domains.set(
                 response.domains.fold(
                     mutableMapOf(),
-                    { acc, ipDomain -> ipDomain.ips.forEach { ip -> acc[ip] = ipDomain.domain }; acc })
+                    { acc, ipDomain -> ipDomain.ips.forEach { ip -> acc[ip] = ipDomain.domain }; acc }
+                )
             )
             val certificate = Certificate(response.token)
 
@@ -160,12 +161,12 @@ class CertificateHandler @Inject private constructor(
         return NetworkInterface.getNetworkInterfaces().asSequence()
             .filter {
                 !it.isLoopback &&
-                        !it.isVirtual &&
-                        it.isUp
+                    !it.isVirtual &&
+                    it.isUp
             }.flatMap {
                 it.inetAddresses.toList().filter { a ->
                     !a.isMulticastAddress &&
-                            a is Inet4Address
+                        a is Inet4Address
                 }.asSequence()
             }.map { i -> i.hostAddress }.toList()
     }

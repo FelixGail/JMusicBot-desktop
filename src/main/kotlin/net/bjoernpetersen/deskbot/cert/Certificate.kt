@@ -24,8 +24,8 @@ data class Certificate(val passphrase: String) {
     fun isValid(): Boolean {
         if (getAlias() != null && (keystore.getCertificate(getAlias()) as X509Certificate).notAfter.after(
                 Date.from(
-                    Instant.now()
-                )
+                        Instant.now()
+                    )
             )
         ) {
             return true

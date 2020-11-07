@@ -69,7 +69,8 @@ class KtorServer @Inject private constructor(
             certificate.keystore,
             certificate.getAlias()!!,
             { certificate.passphrase.toCharArray() },
-            { certificate.passphrase.toCharArray() }) {
+            { certificate.passphrase.toCharArray() }
+        ) {
             host = "0.0.0.0"
             port = ServerConstraints.port + 1
         }
