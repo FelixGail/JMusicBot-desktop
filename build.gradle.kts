@@ -1,8 +1,10 @@
+@file:Suppress("UnstableApiUsage")
+
 import com.diffplug.spotless.LineEnding
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("com.diffplug.gradle.spotless") version Plugin.SPOTLESS
+    id("com.diffplug.spotless") version Plugin.SPOTLESS
     id("io.gitlab.arturbosch.detekt") version Plugin.DETEKT
 
     id("com.github.ben-manes.versions") version Plugin.VERSIONS
@@ -13,7 +15,7 @@ plugins {
 }
 
 group = "com.github.bjoernpetersen"
-version = "0.19.0"
+version = "0.20.0-SNAPSHOT"
 
 repositories {
     mavenLocal {
@@ -33,6 +35,12 @@ application {
     mainClassName = "net.bjoernpetersen.deskbot.view.DeskBot"
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
+}
+
 idea {
     module {
         isDownloadJavadoc = true
@@ -41,12 +49,12 @@ idea {
 
 spotless {
     kotlin {
-        ktlint()
+        ktlint(Plugin.KTLINT)
         lineEndings = LineEnding.UNIX
         endWithNewline()
     }
     kotlinGradle {
-        ktlint()
+        ktlint(Plugin.KTLINT)
         lineEndings = LineEnding.UNIX
         endWithNewline()
     }

@@ -5,6 +5,11 @@ import com.google.inject.AbstractModule
 import com.google.inject.Inject
 import com.google.inject.Scopes
 import io.ktor.locations.KtorExperimentalLocationsAPI
+import io.ktor.locations.Location
+import net.bjoernpetersen.deskbot.rest.model.ImplementationInfo
+import net.bjoernpetersen.deskbot.rest.model.VersionInfo
+import java.io.IOException
+import java.util.Properties
 import java.io.IOException
 import java.util.Properties
 import net.bjoernpetersen.deskbot.impl.MainConfigEntries
