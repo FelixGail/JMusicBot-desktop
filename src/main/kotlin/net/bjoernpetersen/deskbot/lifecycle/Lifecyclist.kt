@@ -4,10 +4,6 @@ import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Module
 import io.ktor.util.KtorExperimentalAPI
-import java.io.File
-import java.nio.file.Paths
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
 import javafx.application.Platform
 import javafx.concurrent.Task
 import kotlinx.coroutines.CoroutineScope
@@ -354,7 +350,7 @@ private class Initializer(
         tasks.add(parentTask)
 
         val certTask = object : Task<Unit>() {
-            val writer = FxInitStateWriter(::updateMessage)
+            val writer = FxProgressFeedback(::updateMessage)
 
             override fun call() {
                 updateTitle(res["task.cert.title"])
