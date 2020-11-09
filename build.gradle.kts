@@ -143,12 +143,6 @@ dependencies {
         name = "ktor-client-jackson",
         version = Lib.KTOR
     )
-
-    implementation(
-        group = "io.ktor",
-        name = "ktor-server-netty",
-        version = Lib.KTOR
-    )
     implementation(
         group = "io.ktor",
         name = "ktor-locations",
